@@ -68,6 +68,19 @@ Deploy to a public domain with password protection. See [DEPLOYMENT.md](DEPLOYME
 
 For more options and detailed steps, see [QUICK_START.md](QUICK_START.md) or [DEPLOYMENT.md](DEPLOYMENT.md).
 
+### Updating Your Deployment
+
+**Render automatically deploys when you push to GitHub!**
+
+Simply commit and push your changes:
+```bash
+git add .
+git commit -m "Your update description"
+git push
+```
+
+Render will automatically detect the push and deploy your changes in 3-5 minutes. See [UPDATE_DEPLOYMENT.md](UPDATE_DEPLOYMENT.md) for detailed instructions.
+
 ## Project Structure
 
 ```
