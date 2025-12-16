@@ -1,4 +1,4 @@
-# VizBrowser - Agentic Dataverse Visualizer
+# Agentic Dataverse Visualizer
 
 An interactive web application for visualizing industrial assets, KPIs, and 3D models with geospatial mapping capabilities.
 
