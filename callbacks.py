@@ -7,6 +7,7 @@ from dash import html, dcc, Input, Output, State, ALL
 import plotly.graph_objs as go
 import numpy as np
 import random
+import dash_vtk
 from data_loader import (
     load_festo_mesh, load_festo_pointcloud, load_garching_mesh, process_point_cloud_colors,
     export_kpi_data_to_csv, export_kpi_data_to_json, export_kpi_status_to_json
@@ -212,13 +213,52 @@ def register_callbacks(app, kpi_data, days):
     @app.callback(
         Output("garching-3d-container", "children"),
         Input("clicked-shopfloor", "data"),
+        Input("active-view", "data"),
+        State("garching-3d-section", "style"),
         prevent_initial_call=False
     )
-    def show_garching_site(shopfloor_data):
-        if shopfloor_data:
-            from components import build_garching_site_view
-            return build_garching_site_view()
-        return dash.no_update
+    def show_garching_site(shopfloor_data, active_view, section_style):
+        """Only load mesh when 3D view is actually displayed"""
+        import gc
+        
+        # Check if section is visible (not display: none)
+        is_visible = section_style.get("display") != "none" if section_style else False
+        
+        # Only load if shopfloor is clicked AND (3D view is active OR section is visible)
+        # This ensures we only load when the view will actually be shown
+        if shopfloor_data and (active_view == "3d" or is_visible):
+            try:
+                from components import build_garching_site_view
+                result = build_garching_site_view()
+                gc.collect()  # Force cleanup after building view
+                return result
+            except MemoryError:
+                gc.collect()
+                return html.Div([
+                    html.Div("⚠️ Memory limit reached. The 3D model is too large for this environment.", style={
+                        "padding": "20px",
+                        "color": "#e53935",
+                        "textAlign": "center",
+                        "fontSize": "1.1rem"
+                    }),
+                    html.Div("Please set environment variables: MESH_DECIMATION_FACTOR=0.9 MAX_MESH_FACES=20000", style={
+                        "padding": "10px",
+                        "color": "#666",
+                        "textAlign": "center"
+                    })
+                ])
+            except Exception as e:
+                gc.collect()
+                return html.Div([
+                    html.Div(f"Error loading 3D view: {str(e)}", style={
+                        "padding": "20px",
+                        "color": "#e53935",
+                        "textAlign": "center"
+                    })
+                ])
+        
+        # Return empty view if not ready (don't load mesh yet)
+        return dash_vtk.View(id="vtk-garching-view", style={"display": "none"})
 
     # --- Garching Click Handler ---
     @app.callback(

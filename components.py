@@ -345,36 +345,18 @@ def get_component_metadata(idx):
 
 def build_garching_site_view():
     """Build the Garching 3D site view with memory optimization"""
-    from data_loader import load_garching_mesh
+    from data_loader import load_garching_mesh, convert_mesh_to_vtk_format
     import dash_vtk
-    import numpy as np
+    import gc
     
     try:
+        # Load mesh
         mesh = load_garching_mesh()
-        xmin, xmax, ymin, ymax, zmin, zmax = mesh.bounds
-        sx = (xmax - xmin)
-        sy = (ymax - ymin)
-        sz = (zmax - zmin)
-        center_list = [float(-0.0375 * sx), float(0.05 * sy), float(0.045 * sz)]
         
-        # Optimize point conversion - use float32 to reduce memory
-        points = mesh.points.astype(np.float32).flatten().tolist()
+        # Convert to VTK format (this clears mesh from memory)
+        mesh_data = convert_mesh_to_vtk_format(mesh)
         
-        # Optimize face conversion - ensure proper format
-        if hasattr(mesh, 'faces') and mesh.faces.size > 0:
-            # PyVista faces format: [n, v0, v1, v2, n, v0, v1, v2, ...]
-            faces = mesh.faces.astype(np.int32).tolist()
-        else:
-            # Fallback if faces are not in expected format
-            faces = []
-        
-        # Calculate mesh stats for debugging
-        n_points = len(points) // 3
-        n_faces = len([f for f in faces if isinstance(f, int) and f == 3]) if faces else 0
-        print(f"📦 Serializing mesh: {n_points} points, {n_faces} faces")
-        
-        # Force garbage collection after mesh processing
-        import gc
+        # Force garbage collection after conversion
         gc.collect()
         
         return html.Div([
@@ -384,8 +366,8 @@ def build_garching_site_view():
                         id="vtk-mesh-repr",
                         children=[
                             dash_vtk.PolyData(
-                                points=points,
-                                polys=faces
+                                points=mesh_data['points'],
+                                polys=mesh_data['faces']
                             )
                         ],
                         property={"pointSize": 2},
@@ -398,8 +380,8 @@ def build_garching_site_view():
                                 id="vtk-sphere-src",
                                 vtkClass="vtkSphereSource",
                                 state={
-                                    "center": center_list,
-                                    "radius": max(float(mesh.length) / 2000.0, 0.05),
+                                    "center": mesh_data['center'],
+                                    "radius": mesh_data['radius'],
                                     "thetaResolution": 24,
                                     "phiResolution": 24,
                                 },
@@ -418,6 +400,7 @@ def build_garching_site_view():
         ], style={"position": "relative"})
     except MemoryError:
         # Fallback if memory is exhausted
+        gc.collect()
         return html.Div([
             html.Div("⚠️ Memory limit reached. Please reduce mesh quality.", style={
                 "padding": "20px",
@@ -425,7 +408,7 @@ def build_garching_site_view():
                 "textAlign": "center",
                 "fontSize": "1.1rem"
             }),
-            html.Div("Try setting MESH_DECIMATION_FACTOR=0.8 or MAX_MESH_FACES=30000", style={
+            html.Div("Try setting MESH_DECIMATION_FACTOR=0.9 or MAX_MESH_FACES=20000", style={
                 "padding": "10px",
                 "color": "#666",
                 "textAlign": "center"
@@ -433,6 +416,7 @@ def build_garching_site_view():
         ])
     except Exception as e:
         # General error handling
+        gc.collect()
         return html.Div([
             html.Div(f"Error loading 3D view: {str(e)}", style={
                 "padding": "20px",

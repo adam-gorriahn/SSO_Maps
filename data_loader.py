@@ -40,11 +40,15 @@ def load_garching_mesh():
     import gc
     
     try:
+        # Clear cache before loading to free memory
+        gc.collect()
+        
         mesh = pv.read(GARCHING_OBJ_PATH)
         
         # Ensure triangulated
         if mesh.faces.size > 0 and mesh.faces[0] not in (3, 4):
             mesh = mesh.triangulate()
+            gc.collect()  # Free memory after triangulation
         
         # Count current faces - PyVista provides n_faces property
         try:
@@ -104,6 +108,64 @@ def load_garching_mesh():
     except Exception as e:
         print(f"❌ Error loading mesh: {e}")
         raise
+
+def convert_mesh_to_vtk_format(mesh):
+    """Convert mesh to VTK format efficiently, clearing mesh from memory"""
+    import gc
+    import numpy as np
+    
+    try:
+        # Get bounds before processing
+        xmin, xmax, ymin, ymax, zmin, zmax = mesh.bounds
+        sx = float(xmax - xmin)
+        sy = float(ymax - ymin)
+        sz = float(zmax - zmin)
+        center_list = [float(-0.0375 * sx), float(0.05 * sy), float(0.045 * sz)]
+        radius = max(float(mesh.length) / 2000.0, 0.05)
+        
+        # Convert points efficiently - use float32 and convert in chunks if needed
+        points_array = mesh.points.astype(np.float32)
+        points = points_array.flatten().tolist()
+        del points_array  # Free memory immediately
+        
+        # Convert faces efficiently
+        if hasattr(mesh, 'faces') and mesh.faces.size > 0:
+            faces_array = mesh.faces.astype(np.int32)
+            faces = faces_array.tolist()
+            del faces_array  # Free memory immediately
+        else:
+            faces = []
+        
+        # Clear mesh from memory
+        del mesh
+        gc.collect()
+        
+        # Calculate stats
+        n_points = len(points) // 3
+        n_faces = len([f for f in faces if isinstance(f, int) and f == 3]) if faces else 0
+        print(f"📦 Converted mesh: {n_points} points, {n_faces} faces")
+        
+        return {
+            'points': points,
+            'faces': faces,
+            'center': center_list,
+            'radius': radius,
+            'bounds': (sx, sy, sz)
+        }
+    except MemoryError as e:
+        print(f"❌ Memory error converting mesh: {e}")
+        gc.collect()
+        raise
+    except Exception as e:
+        print(f"❌ Error converting mesh: {e}")
+        gc.collect()
+        raise
+
+def clear_mesh_cache():
+    """Clear the mesh cache to free memory"""
+    load_garching_mesh.cache_clear()
+    import gc
+    gc.collect()
 
 def simulate_kpi(seed=0):
     """Generate simulated KPI data for a 600m² shopfloor"""

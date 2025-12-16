@@ -140,15 +140,25 @@ This project is for internal use.
 
 ## Memory Optimization
 
-If you experience out-of-memory crashes (especially on Render.com's free tier), see [MEMORY_OPTIMIZATION.md](MEMORY_OPTIMIZATION.md) for:
-- Mesh decimation settings
-- Memory optimization techniques
-- Configuration for different hosting plans
+The application has been optimized for memory efficiency, especially for Render.com's free tier (512MB limit). The 3D mesh loading has been optimized with:
 
-**Quick fix for Render.com (512MB):**
-Set environment variables:
-- `MESH_DECIMATION_FACTOR=0.75`
-- `MAX_MESH_FACES=50000`
+- **Lazy Loading**: Mesh is only loaded when the 3D view is actually displayed
+- **Memory-Efficient Conversion**: Mesh data is converted efficiently and cleared from memory immediately
+- **Aggressive Decimation**: Default settings reduce mesh size by 90% to fit within 512MB
+
+**Default settings (optimized for Render.com 512MB):**
+- `MESH_DECIMATION_FACTOR=0.9` (90% reduction)
+- `MAX_MESH_FACES=20000` (maximum faces)
+
+**If you still experience memory issues on Render.com:**
+Set these environment variables in your Render dashboard:
+- `MESH_DECIMATION_FACTOR=0.95` (even more aggressive)
+- `MAX_MESH_FACES=15000` (fewer faces)
+
+**For higher memory limits (1GB+):**
+You can use higher quality settings:
+- `MESH_DECIMATION_FACTOR=0.85` (85% reduction)
+- `MAX_MESH_FACES=30000` (more faces)
 
 ## Support
 
