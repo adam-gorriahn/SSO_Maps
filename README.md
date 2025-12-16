@@ -142,18 +142,26 @@ This project is for internal use.
 
 The application has been optimized for memory efficiency, especially for Render.com's free tier (512MB limit). The 3D mesh loading has been optimized with:
 
-- **Lazy Loading**: Mesh is only loaded when the 3D view is actually displayed
+- **Lazy Loading**: Mesh is only loaded when the 3D view is actually displayed (not on app startup)
 - **Memory-Efficient Conversion**: Mesh data is converted efficiently and cleared from memory immediately
-- **Aggressive Decimation**: Default settings reduce mesh size by 90% to fit within 512MB
+- **Aggressive Decimation**: Default settings reduce mesh size by 95% to fit within 512MB
+- **Cache Clearing**: Mesh cache is cleared immediately after conversion to free memory
 
 **Default settings (optimized for Render.com 512MB):**
-- `MESH_DECIMATION_FACTOR=0.9` (90% reduction)
-- `MAX_MESH_FACES=20000` (maximum faces)
+- `MESH_DECIMATION_FACTOR=0.95` (95% reduction)
+- `MAX_MESH_FACES=15000` (maximum faces)
 
 **If you still experience memory issues on Render.com:**
-Set these environment variables in your Render dashboard:
-- `MESH_DECIMATION_FACTOR=0.95` (even more aggressive)
-- `MAX_MESH_FACES=15000` (fewer faces)
+
+**Option 1 - Disable 3D view entirely:**
+- `DISABLE_3D_VIEW=true` (completely disables 3D visualization)
+
+**Option 2 - More aggressive reduction:**
+- `MESH_DECIMATION_FACTOR=0.98` (98% reduction)
+- `MAX_MESH_FACES=10000` (fewer faces)
+
+**Option 3 - Upgrade plan:**
+Upgrade to a Render.com plan with 1GB+ memory for better performance.
 
 **For higher memory limits (1GB+):**
 You can use higher quality settings:

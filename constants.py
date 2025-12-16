@@ -25,12 +25,14 @@ SPHERE_ANIMATION_INTERVAL = 120
 # --- 3D Mesh Configuration ---
 # Mesh decimation factor (0.0 = no reduction, 1.0 = maximum reduction)
 # Lower values = higher quality but more memory
-# For Render.com free tier (512MB), use 0.9 for aggressive memory reduction
-# Default is now 0.9 (90% reduction) to fit within 512MB limit
-MESH_DECIMATION_FACTOR = float(os.getenv('MESH_DECIMATION_FACTOR', '0.9'))
+# For Render.com free tier (512MB), use 0.95 for very aggressive memory reduction
+# Default is now 0.95 (95% reduction) to fit within 512MB limit
+MESH_DECIMATION_FACTOR = float(os.getenv('MESH_DECIMATION_FACTOR', '0.95'))
 # Maximum number of faces for Garching mesh (0 = no limit)
-# Default reduced to 20000 for 512MB environments (Render.com free tier)
-MAX_MESH_FACES = int(os.getenv('MAX_MESH_FACES', '20000'))
+# Default reduced to 15000 for 512MB environments (Render.com free tier)
+MAX_MESH_FACES = int(os.getenv('MAX_MESH_FACES', '15000'))
+# Disable 3D view entirely if memory is too constrained (set to 'true' to disable)
+DISABLE_3D_VIEW = os.getenv('DISABLE_3D_VIEW', 'false').lower() == 'true'
 
 # --- Map Configuration ---
 MAP_CENTER = [48.265132904052734, 11.661945343017578]  # Siemens Technology Center Garching

@@ -346,17 +346,25 @@ def register_callbacks(app, kpi_data, days):
             return True
         return dash.no_update
 
-    # --- Bounds Initialization ---
+    # --- Bounds Initialization (Lazy - from mesh data) ---
     @app.callback(
         Output("garching-bounds", "data"),
-        Input("clicked-shopfloor", "data"),
+        Input("garching-3d-container", "children"),
+        State("garching-bounds", "data"),
         prevent_initial_call=False
     )
-    def init_bounds(shopfloor_data):
-        if shopfloor_data:
-            m = load_garching_mesh()
-            xmin, xmax, ymin, ymax, zmin, zmax = m.bounds
-            return {"sx": float(xmax - xmin), "sy": float(ymax - ymin), "sz": float(zmax - zmin)}
+    def init_bounds(container_children, existing_bounds):
+        """Calculate bounds only when 3D view is actually loaded - use defaults for controls"""
+        # If bounds already exist, don't recalculate
+        if existing_bounds:
+            return dash.no_update
+        
+        # Only set bounds when container has actual content (not just placeholder)
+        if container_children and isinstance(container_children, list) and len(container_children) > 0:
+            # Use reasonable defaults - controls will work with these
+            # Actual mesh bounds are calculated in convert_mesh_to_vtk_format
+            return {"sx": 1.0, "sy": 1.0, "sz": 1.0}
+        
         return dash.no_update
 
     # --- Viewer Controls ---
@@ -378,14 +386,19 @@ def register_callbacks(app, kpi_data, days):
     )
     def viewer_controls(up, down, left, right, zoom_in, zoom_out, center, rotl, rotr, actor, bounds):
         ctx = dash.callback_context
-        if not ctx.triggered or not bounds:
+        if not ctx.triggered:
             return dash.no_update, dash.no_update
         
         which = ctx.triggered[0]['prop_id'].split('.')[0]
         actor = dict(actor or {})
         pos = list(actor.get("position", [0.0, 0.0, 0.0]))
         ori = list(actor.get("orientation", [0.0, 0.0, 0.0]))
-        sx, sy, sz = bounds.get("sx", 1.0), bounds.get("sy", 1.0), bounds.get("sz", 1.0)
+        
+        # Use bounds if available, otherwise use defaults
+        if bounds:
+            sx, sy, sz = bounds.get("sx", 1.0), bounds.get("sy", 1.0), bounds.get("sz", 1.0)
+        else:
+            sx, sy, sz = 1.0, 1.0, 1.0
         
         step_x = 0.02 * sx
         step_y = 0.02 * sy

@@ -345,9 +345,27 @@ def get_component_metadata(idx):
 
 def build_garching_site_view():
     """Build the Garching 3D site view with memory optimization"""
-    from data_loader import load_garching_mesh, convert_mesh_to_vtk_format
+    from data_loader import load_garching_mesh, convert_mesh_to_vtk_format, clear_mesh_cache
+    from constants import DISABLE_3D_VIEW
     import dash_vtk
     import gc
+    
+    # Check if 3D view is disabled via environment variable
+    if DISABLE_3D_VIEW:
+        return html.Div([
+            html.Div("3D View is disabled due to memory constraints.", style={
+                "padding": "20px",
+                "color": "#666",
+                "textAlign": "center",
+                "fontSize": "1rem"
+            }),
+            html.Div("Set DISABLE_3D_VIEW=false to enable (may cause memory issues on 512MB plans)", style={
+                "padding": "10px",
+                "color": "#888",
+                "textAlign": "center",
+                "fontSize": "0.9rem"
+            })
+        ])
     
     try:
         # Load mesh
@@ -355,6 +373,9 @@ def build_garching_site_view():
         
         # Convert to VTK format (this clears mesh from memory)
         mesh_data = convert_mesh_to_vtk_format(mesh)
+        
+        # Clear the mesh cache to free memory immediately
+        clear_mesh_cache()
         
         # Force garbage collection after conversion
         gc.collect()
@@ -400,22 +421,32 @@ def build_garching_site_view():
         ], style={"position": "relative"})
     except MemoryError:
         # Fallback if memory is exhausted
+        clear_mesh_cache()
         gc.collect()
         return html.Div([
-            html.Div("⚠️ Memory limit reached. Please reduce mesh quality.", style={
+            html.Div("⚠️ Memory limit reached. 3D view cannot be loaded.", style={
                 "padding": "20px",
                 "color": "#e53935",
                 "textAlign": "center",
                 "fontSize": "1.1rem"
             }),
-            html.Div("Try setting MESH_DECIMATION_FACTOR=0.9 or MAX_MESH_FACES=20000", style={
+            html.Div([
+                html.Div("Options:", style={"fontWeight": "bold", "marginBottom": "8px"}),
+                html.Div("1. Set DISABLE_3D_VIEW=true to disable 3D view", style={"marginBottom": "4px"}),
+                html.Div("2. Set MESH_DECIMATION_FACTOR=0.98 for maximum reduction", style={"marginBottom": "4px"}),
+                html.Div("3. Set MAX_MESH_FACES=10000 for fewer faces", style={"marginBottom": "4px"}),
+                html.Div("4. Upgrade to a plan with more memory (1GB+)", style={})
+            ], style={
                 "padding": "10px",
                 "color": "#666",
-                "textAlign": "center"
+                "textAlign": "left",
+                "maxWidth": "500px",
+                "margin": "0 auto"
             })
         ])
     except Exception as e:
         # General error handling
+        clear_mesh_cache()
         gc.collect()
         return html.Div([
             html.Div(f"Error loading 3D view: {str(e)}", style={
