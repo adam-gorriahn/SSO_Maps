@@ -13,7 +13,8 @@ ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() == 'true'
 
 # Check if we're likely running locally (not in a cloud environment)
-# This helps with local testing
+# Note: Render doesn't set a RENDER env var, so we rely on ADMIN_PASSWORD being set
+# If ADMIN_PASSWORD is set, auth is always enabled regardless of environment
 IS_LOCAL = (
     os.getenv('RENDER') is None and 
     os.getenv('DYNO') is None and 
