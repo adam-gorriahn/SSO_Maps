@@ -344,58 +344,97 @@ def get_component_metadata(idx):
     return comp
 
 def build_garching_site_view():
-    """Build the Garching 3D site view"""
+    """Build the Garching 3D site view with memory optimization"""
     from data_loader import load_garching_mesh
     import dash_vtk
+    import numpy as np
     
-    mesh = load_garching_mesh()
-    xmin, xmax, ymin, ymax, zmin, zmax = mesh.bounds
-    sx = (xmax - xmin)
-    sy = (ymax - ymin)
-    sz = (zmax - zmin)
-    center_list = [float(-0.0375 * sx), float(0.05 * sy), float(0.045 * sz)]
-    points = mesh.points
-    faces = mesh.faces.tolist()
-    
-    return html.Div([
-        dash_vtk.View(
-            children=[
-                dash_vtk.GeometryRepresentation(
-                    id="vtk-mesh-repr",
-                    children=[
-                        dash_vtk.PolyData(
-                            points=points.flatten().tolist(),
-                            polys=faces
-                        )
-                    ],
-                    property={"pointSize": 2},
-                    actor={"position": [0.0, 0.0, 0.0], "orientation": [0.0, 0.0, 0.0]}
-                ),
-                dash_vtk.GeometryRepresentation(
-                    id="vtk-sphere-repr",
-                    children=[
-                        dash_vtk.Algorithm(
-                            id="vtk-sphere-src",
-                            vtkClass="vtkSphereSource",
-                            state={
-                                "center": center_list,
-                                "radius": max(float(mesh.length) / 2000.0, 0.05),
-                                "thetaResolution": 24,
-                                "phiResolution": 24,
-                            },
-                        )
-                    ],
-                    property={"color": [1.0, 0.0, 0.0], "opacity": 1.0},
-                    actor={"position": [0.0, 0.0, 0.0], "orientation": [0.0, 0.0, 0.0]}
-                )
-            ],
-            id="vtk-garching-view",
-            pickingModes=["click", "hover"],
-            style={"height": "480px", "width": "100%"},
-            background=[1, 1, 1]
-        ),
-        build_3d_controls()
-    ], style={"position": "relative"})
+    try:
+        mesh = load_garching_mesh()
+        xmin, xmax, ymin, ymax, zmin, zmax = mesh.bounds
+        sx = (xmax - xmin)
+        sy = (ymax - ymin)
+        sz = (zmax - zmin)
+        center_list = [float(-0.0375 * sx), float(0.05 * sy), float(0.045 * sz)]
+        
+        # Optimize point conversion - use float32 to reduce memory
+        points = mesh.points.astype(np.float32).flatten().tolist()
+        
+        # Optimize face conversion - ensure proper format
+        if hasattr(mesh, 'faces') and mesh.faces.size > 0:
+            # PyVista faces format: [n, v0, v1, v2, n, v0, v1, v2, ...]
+            faces = mesh.faces.astype(np.int32).tolist()
+        else:
+            # Fallback if faces are not in expected format
+            faces = []
+        
+        # Calculate mesh stats for debugging
+        n_points = len(points) // 3
+        n_faces = len([f for f in faces if isinstance(f, int) and f == 3]) if faces else 0
+        
+        return html.Div([
+            dash_vtk.View(
+                children=[
+                    dash_vtk.GeometryRepresentation(
+                        id="vtk-mesh-repr",
+                        children=[
+                            dash_vtk.PolyData(
+                                points=points,
+                                polys=faces
+                            )
+                        ],
+                        property={"pointSize": 2},
+                        actor={"position": [0.0, 0.0, 0.0], "orientation": [0.0, 0.0, 0.0]}
+                    ),
+                    dash_vtk.GeometryRepresentation(
+                        id="vtk-sphere-repr",
+                        children=[
+                            dash_vtk.Algorithm(
+                                id="vtk-sphere-src",
+                                vtkClass="vtkSphereSource",
+                                state={
+                                    "center": center_list,
+                                    "radius": max(float(mesh.length) / 2000.0, 0.05),
+                                    "thetaResolution": 24,
+                                    "phiResolution": 24,
+                                },
+                            )
+                        ],
+                        property={"color": [1.0, 0.0, 0.0], "opacity": 1.0},
+                        actor={"position": [0.0, 0.0, 0.0], "orientation": [0.0, 0.0, 0.0]}
+                    )
+                ],
+                id="vtk-garching-view",
+                pickingModes=["click", "hover"],
+                style={"height": "480px", "width": "100%"},
+                background=[1, 1, 1]
+            ),
+            build_3d_controls()
+        ], style={"position": "relative"})
+    except MemoryError:
+        # Fallback if memory is exhausted
+        return html.Div([
+            html.Div("⚠️ Memory limit reached. Please reduce mesh quality.", style={
+                "padding": "20px",
+                "color": "#e53935",
+                "textAlign": "center",
+                "fontSize": "1.1rem"
+            }),
+            html.Div("Try setting MESH_DECIMATION_FACTOR=0.8 or MAX_MESH_FACES=30000", style={
+                "padding": "10px",
+                "color": "#666",
+                "textAlign": "center"
+            })
+        ])
+    except Exception as e:
+        # General error handling
+        return html.Div([
+            html.Div(f"Error loading 3D view: {str(e)}", style={
+                "padding": "20px",
+                "color": "#e53935",
+                "textAlign": "center"
+            })
+        ])
 
 def build_image_gallery():
     """Build image gallery for 2D images"""

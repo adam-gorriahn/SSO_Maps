@@ -11,7 +11,11 @@ from functools import lru_cache
 from scipy import stats
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
-from constants import FESTO_PLY_PATH, FESTO_OBJ_PATH, GARCHING_OBJ_PATH, POINT_CLOUD_MAX_POINTS, KPI_DAYS, KPI_LABELS, EXPORT_FILENAME_PREFIX, EXPORT_TIMESTAMP_FORMAT
+from constants import (
+    FESTO_PLY_PATH, FESTO_OBJ_PATH, GARCHING_OBJ_PATH, POINT_CLOUD_MAX_POINTS, 
+    KPI_DAYS, KPI_LABELS, EXPORT_FILENAME_PREFIX, EXPORT_TIMESTAMP_FORMAT,
+    MESH_DECIMATION_FACTOR, MAX_MESH_FACES
+)
 
 @lru_cache(maxsize=1)
 def load_festo_pointcloud():
@@ -32,10 +36,48 @@ def load_festo_mesh():
 
 @lru_cache(maxsize=1)
 def load_garching_mesh():
-    """Load and cache Garching mesh data"""
+    """Load and cache Garching mesh data with memory optimization"""
     mesh = pv.read(GARCHING_OBJ_PATH)
+    
+    # Ensure triangulated
     if mesh.faces.size > 0 and mesh.faces[0] not in (3, 4):
         mesh = mesh.triangulate()
+    
+    # Count current faces - PyVista provides n_faces property
+    try:
+        n_faces = mesh.n_faces
+    except AttributeError:
+        # Fallback: estimate from faces array size (format: [n, v0, v1, v2, ...])
+        n_faces = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
+    
+    # Apply decimation if mesh is too large or decimation factor is set
+    if MESH_DECIMATION_FACTOR > 0.0 and n_faces > 0:
+        target_faces = max(1, int(n_faces * (1.0 - MESH_DECIMATION_FACTOR)))
+        if target_faces < n_faces:
+            try:
+                # PyVista decimate takes reduction factor (0.0 to 1.0)
+                reduction = 1.0 - (target_faces / n_faces)
+                reduction = max(0.0, min(0.99, reduction))  # Clamp between 0 and 0.99
+                mesh = mesh.decimate(reduction)
+            except Exception as e:
+                print(f"Warning: Mesh decimation failed: {e}. Using original mesh.")
+    
+    # Apply maximum face limit if set
+    if MAX_MESH_FACES > 0:
+        # Recalculate faces after decimation
+        try:
+            n_faces_after = mesh.n_faces
+        except AttributeError:
+            n_faces_after = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
+            
+        if n_faces_after > MAX_MESH_FACES:
+            try:
+                reduction = 1.0 - (MAX_MESH_FACES / n_faces_after)
+                reduction = max(0.0, min(0.99, reduction))
+                mesh = mesh.decimate(reduction)
+            except Exception as e:
+                print(f"Warning: Mesh face limit reduction failed: {e}. Using current mesh.")
+    
     return mesh
 
 def simulate_kpi(seed=0):

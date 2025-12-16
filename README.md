@@ -64,7 +64,7 @@ python deploy.py --mode dev
 
 ## Deployment
 
-Deploy to a public domain with password protection. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+Deploy to a public domain with password protection.
 
 ### Quick Deploy (Render)
 
@@ -74,7 +74,17 @@ Deploy to a public domain with password protection. See [DEPLOYMENT.md](DEPLOYME
 4. Set environment variable: `ADMIN_PASSWORD=your_secure_password`
 5. Deploy!
 
-For more options and detailed steps, see [QUICK_START.md](QUICK_START.md) or [DEPLOYMENT.md](DEPLOYMENT.md).
+### Other Deployment Options
+
+See [DEPLOYMENT_ALTERNATIVES.md](DEPLOYMENT_ALTERNATIVES.md) for comprehensive guides on:
+- **Railway** - Modern, easy alternative to Render
+- **Fly.io** - Generous free tier, great performance
+- **Heroku** - Established platform (paid)
+- **PythonAnywhere** - Python-focused hosting
+- **DigitalOcean** - Reliable infrastructure
+- **AWS/Google Cloud/Azure** - Enterprise options
+
+For detailed Render steps, see [QUICK_START.md](QUICK_START.md).
 
 ### Updating Your Deployment
 
@@ -127,6 +137,18 @@ VizBrowser/
 ## License
 
 This project is for internal use.
+
+## Memory Optimization
+
+If you experience out-of-memory crashes (especially on Render.com's free tier), see [MEMORY_OPTIMIZATION.md](MEMORY_OPTIMIZATION.md) for:
+- Mesh decimation settings
+- Memory optimization techniques
+- Configuration for different hosting plans
+
+**Quick fix for Render.com (512MB):**
+Set environment variables:
+- `MESH_DECIMATION_FACTOR=0.75`
+- `MAX_MESH_FACES=50000`
 
 ## Support
 
