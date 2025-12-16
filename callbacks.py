@@ -349,23 +349,25 @@ def register_callbacks(app, kpi_data, days):
     # --- Bounds Initialization (Lazy - from mesh data) ---
     @app.callback(
         Output("garching-bounds", "data"),
-        Input("garching-3d-container", "children"),
+        Input("mesh-bounds-storage", "data"),
         State("garching-bounds", "data"),
         prevent_initial_call=False
     )
-    def init_bounds(container_children, existing_bounds):
-        """Calculate bounds only when 3D view is actually loaded - use defaults for controls"""
+    def init_bounds(bounds_storage_data, existing_bounds):
+        """Extract actual mesh bounds from the loaded 3D view"""
         # If bounds already exist, don't recalculate
         if existing_bounds:
             return dash.no_update
         
-        # Only set bounds when container has actual content (not just placeholder)
-        if container_children and isinstance(container_children, list) and len(container_children) > 0:
-            # Use reasonable defaults - controls will work with these
-            # Actual mesh bounds are calculated in convert_mesh_to_vtk_format
-            return {"sx": 1.0, "sy": 1.0, "sz": 1.0}
+        # Extract bounds from the storage component
+        if bounds_storage_data and 'bounds' in bounds_storage_data:
+            bounds_tuple = bounds_storage_data['bounds']
+            if isinstance(bounds_tuple, (list, tuple)) and len(bounds_tuple) == 3:
+                sx, sy, sz = float(bounds_tuple[0]), float(bounds_tuple[1]), float(bounds_tuple[2])
+                return {"sx": sx, "sy": sy, "sz": sz}
         
-        return dash.no_update
+        # Fallback to defaults if extraction fails
+        return {"sx": 1.0, "sy": 1.0, "sz": 1.0}
 
     # --- Viewer Controls ---
     @app.callback(

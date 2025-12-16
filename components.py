@@ -417,7 +417,12 @@ def build_garching_site_view():
                 style={"height": "480px", "width": "100%"},
                 background=[1, 1, 1]
             ),
-            build_3d_controls()
+            build_3d_controls(),
+            # Store bounds in a hidden dcc.Store component
+            dcc.Store(
+                id="mesh-bounds-storage",
+                data={"bounds": mesh_data.get('bounds', (1.0, 1.0, 1.0))}
+            )
         ], style={"position": "relative"})
     except MemoryError:
         # Fallback if memory is exhausted
