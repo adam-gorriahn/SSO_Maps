@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: vizbrowser
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8050
+      - key: DEBUG_MODE
+        value: False
+      - key: ADMIN_PASSWORD
+        sync: false  # Set this in Render dashboard
+      - key: SESSION_SECRET_KEY
+        generateValue: true
+

@@ -1,0 +1,9 @@
+dash
+plotly
+numpy
+dash-vtk 
+dash-leaflet
+pyvista
+pandas
+scikit-learn
+scipy

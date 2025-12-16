@@ -1,0 +1,4 @@
+@keyframes moveArrow {
+    0% { left: 180px; }
+    100% { left: 220px; }
+} 
