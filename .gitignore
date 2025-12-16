@@ -46,3 +46,6 @@ Thumbs.db
 .vercel
 .netlify
 
+# Pre-processed mesh files (generated during build)
+assets/garching_optimized.obj
+

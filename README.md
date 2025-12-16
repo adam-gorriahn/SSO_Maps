@@ -142,10 +142,26 @@ This project is for internal use.
 
 The application has been optimized for memory efficiency, especially for Render.com's free tier (512MB limit). The 3D mesh loading has been optimized with:
 
+- **Pre-Deploy Processing**: Mesh is optimized during build time (not at runtime) to reduce memory usage
 - **Lazy Loading**: Mesh is only loaded when the 3D view is actually displayed (not on app startup)
 - **Memory-Efficient Conversion**: Mesh data is converted efficiently and cleared from memory immediately
 - **Aggressive Decimation**: Default settings reduce mesh size by 95% to fit within 512MB
 - **Cache Clearing**: Mesh cache is cleared immediately after conversion to free memory
+
+### Pre-Deploy Mesh Optimization (Recommended)
+
+The `preprocess_mesh.py` script runs automatically during Render.com builds to create an optimized mesh file. This:
+- **Reduces runtime memory usage** - Mesh is already optimized, no decimation needed at runtime
+- **Faster startup** - No mesh processing delay when users access the 3D view
+- **Lower memory footprint** - Smaller mesh file means less memory needed
+
+The script is automatically included in `render.yaml` build command. To customize optimization:
+
+```bash
+# Set environment variables in Render.com dashboard:
+MESH_DECIMATION_FACTOR=0.95  # 95% reduction (default)
+MAX_MESH_FACES=15000         # Maximum faces (default)
+```
 
 **Default settings (optimized for Render.com 512MB):**
 - `MESH_DECIMATION_FACTOR=0.95` (95% reduction)
@@ -167,6 +183,16 @@ Upgrade to a Render.com plan with 1GB+ memory for better performance.
 You can use higher quality settings:
 - `MESH_DECIMATION_FACTOR=0.85` (85% reduction)
 - `MAX_MESH_FACES=30000` (more faces)
+
+### Manual Pre-Processing (Local Development)
+
+To pre-process the mesh locally before committing:
+
+```bash
+python preprocess_mesh.py
+```
+
+This creates `assets/garching_optimized.obj` which will be used automatically if present.
 
 ## Support
 

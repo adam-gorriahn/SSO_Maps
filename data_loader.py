@@ -37,13 +37,24 @@ def load_festo_mesh():
 @lru_cache(maxsize=1)
 def load_garching_mesh():
     """Load and cache Garching mesh data with aggressive memory optimization"""
+    from constants import GARCHING_OPTIMIZED_PATH, GARCHING_OBJ_PATH
+    import os
     import gc
     
     try:
+        # Use pre-optimized mesh if available (created during build), otherwise use original
+        mesh_path = GARCHING_OPTIMIZED_PATH if os.path.exists(GARCHING_OPTIMIZED_PATH) else GARCHING_OBJ_PATH
+        using_optimized = mesh_path == GARCHING_OPTIMIZED_PATH
+        
+        if using_optimized:
+            print("📦 Using pre-optimized mesh (from build preprocessing)")
+        else:
+            print("📦 Using original mesh (runtime decimation will be applied)")
+        
         # Clear cache before loading to free memory
         gc.collect()
         
-        mesh = pv.read(GARCHING_OBJ_PATH)
+        mesh = pv.read(mesh_path)
         
         # Ensure triangulated
         if mesh.faces.size > 0 and mesh.faces[0] not in (3, 4):
@@ -57,9 +68,14 @@ def load_garching_mesh():
             # Fallback: estimate from faces array size (format: [n, v0, v1, v2, ...])
             n_faces_original = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
         
+        # If using pre-optimized mesh, skip additional decimation (already optimized)
+        if using_optimized:
+            print(f"📊 Pre-optimized mesh: {n_faces_original} faces (no additional decimation needed)")
+            return mesh
+        
         print(f"📊 Original mesh: {n_faces_original} faces")
         
-        # Apply decimation if mesh is too large or decimation factor is set
+        # Apply decimation if mesh is too large or decimation factor is set (only for non-optimized meshes)
         if MESH_DECIMATION_FACTOR > 0.0 and n_faces_original > 0:
             target_faces = max(1, int(n_faces_original * (1.0 - MESH_DECIMATION_FACTOR)))
             if target_faces < n_faces_original:

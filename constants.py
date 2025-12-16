@@ -9,6 +9,7 @@ ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 FESTO_PLY_PATH = os.path.join(ASSETS_DIR, "festo_new_cleaned.ply")
 FESTO_OBJ_PATH = os.path.join(ASSETS_DIR, "festo.obj")
 GARCHING_OBJ_PATH = os.path.join(ASSETS_DIR, "garching_cleaned.obj")
+GARCHING_OPTIMIZED_PATH = os.path.join(ASSETS_DIR, "garching_optimized.obj")
 
 # --- App Configuration ---
 APP_TITLE = "Agentic Dataverse Visualizer"
