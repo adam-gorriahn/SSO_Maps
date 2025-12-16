@@ -9,7 +9,7 @@ import numpy as np
 import random
 from data_loader import (
     load_festo_mesh, load_festo_pointcloud, load_garching_mesh, process_point_cloud_colors,
-    export_kpi_data_to_csv, export_kpi_status_to_json
+    export_kpi_data_to_csv, export_kpi_data_to_json, export_kpi_status_to_json
 )
 from components import get_component_metadata, build_image_gallery
 from constants import KPI_LABELS, KPI_UNITS, SPHERE_ANIMATION_FRAMES
@@ -665,14 +665,8 @@ def register_callbacks(app, kpi_data, days):
             # Handle JSON format
             elif export_format == "json":
                 if "kpi_data" in export_options:
-                    # Convert CSV data to JSON format
-                    csv_data, _ = export_kpi_data_to_csv(kpi_data, days)
-                    import pandas as pd
-                    from io import StringIO
-                    
-                    df = pd.read_csv(StringIO(csv_data))
-                    json_data = df.to_json(orient='records', indent=2)
-                    filename = f"VizBrowser_KPI_Data_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.json"
+                    # Export KPI data directly to JSON format
+                    json_data, filename = export_kpi_data_to_json(kpi_data, days)
                     
                     return (
                         dict(content=json_data, filename=filename),

@@ -32,24 +32,32 @@ An interactive web application for visualizing industrial assets, KPIs, and 3D m
 
 ## Running Locally
 
-### Development Mode (No Password)
+### Development Mode (No Password - Default)
 
+Simply run:
 ```bash
 python app.py
 ```
 
-The app will be available at `http://127.0.0.1:8050`
+The app will be available at `http://127.0.0.1:8050` without password protection.
 
-### With Password Protection
+### With Password Protection (Local Testing)
 
-Set environment variables:
+If you want to test password protection locally, set the password:
 ```bash
-export ADMIN_PASSWORD=your_password
-export DEBUG_MODE=False
+export ADMIN_PASSWORD=test_password
 python app.py
 ```
 
-Or use the deployment script:
+Or set it inline:
+```bash
+ADMIN_PASSWORD=test_password python app.py
+```
+
+**Note:** When running locally (not in a cloud environment), the app defaults to no password protection unless you explicitly set `ADMIN_PASSWORD`. This makes local development easier.
+
+### Using the Deployment Script
+
 ```bash
 python deploy.py --mode dev
 ```

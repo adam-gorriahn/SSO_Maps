@@ -25,8 +25,13 @@ app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = APP_TITLE
 
 # Initialize password authentication
-# Enable auth if ADMIN_PASSWORD is set, or if running in production (not debug mode)
-enable_auth = os.getenv('ADMIN_PASSWORD') is not None or not DEBUG_MODE
+# Enable auth if:
+# 1. ADMIN_PASSWORD is explicitly set via environment variable, OR
+# 2. Running in production (cloud environment detected)
+# For local testing without ADMIN_PASSWORD set, auth is disabled by default
+admin_password_explicitly_set = os.getenv('ADMIN_PASSWORD') is not None
+is_cloud_env = os.getenv('RENDER') is not None or os.getenv('DYNO') is not None or os.getenv('RAILWAY_ENVIRONMENT') is not None
+enable_auth = admin_password_explicitly_set or (is_cloud_env and not DEBUG_MODE)
 if enable_auth:
     app = init_auth(app)
 

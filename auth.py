@@ -12,14 +12,27 @@ import secrets
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() == 'true'
 
-# Default password only for local development (when DEBUG_MODE is True)
-if not ADMIN_PASSWORD and DEBUG_MODE:
-    ADMIN_PASSWORD = 'admin'  # Default for local development only
-elif not ADMIN_PASSWORD:
-    raise ValueError(
-        "ADMIN_PASSWORD environment variable must be set in production. "
-        "Set it in your deployment platform's environment variables."
-    )
+# Check if we're likely running locally (not in a cloud environment)
+# This helps with local testing
+IS_LOCAL = (
+    os.getenv('RENDER') is None and 
+    os.getenv('DYNO') is None and 
+    os.getenv('RAILWAY_ENVIRONMENT') is None and
+    os.getenv('VERCEL') is None
+)
+
+# Default password for local development
+# Allow default password if: DEBUG_MODE is True OR we're running locally without ADMIN_PASSWORD set
+# This prevents errors when running locally, but still requires password in production
+if not ADMIN_PASSWORD:
+    if DEBUG_MODE or IS_LOCAL:
+        ADMIN_PASSWORD = 'admin'  # Default for local development only
+    else:
+        raise ValueError(
+            "ADMIN_PASSWORD environment variable must be set in production. "
+            "Set it in your deployment platform's environment variables. "
+            "For local testing, the app will use 'admin' as default password."
+        )
 
 SESSION_SECRET_KEY = os.getenv('SESSION_SECRET_KEY', secrets.token_hex(32))
 

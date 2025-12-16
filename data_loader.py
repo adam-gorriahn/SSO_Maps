@@ -169,6 +169,50 @@ def export_kpi_data_to_csv(kpi_data, days):
     
     return csv_string, filename
 
+def export_kpi_data_to_json(kpi_data, days):
+    """Export KPI data to JSON format"""
+    from constants import KPI_LABELS, KPI_UNITS
+    
+    # Create structured JSON data
+    json_data = {
+        "export_timestamp": datetime.now().isoformat(),
+        "data_source": "VizBrowser KPI Dashboard",
+        "data_type": "time_series",
+        "kpi_data": []
+    }
+    
+    # Convert to list of records (one per day)
+    for day_idx, day in enumerate(days):
+        day_record = {"day": int(day)}
+        
+        for kpi_key in KPI_LABELS:
+            value = kpi_data[kpi_key][day_idx]
+            if kpi_key == 'oee':
+                value = value * 100  # Convert to percentage
+            
+            day_record[kpi_key] = {
+                "label": KPI_LABELS[kpi_key],
+                "value": float(value),
+                "unit": KPI_UNITS[kpi_key]
+            }
+        
+        json_data["kpi_data"].append(day_record)
+    
+    # Add metadata about KPIs
+    json_data["kpi_metadata"] = {}
+    for kpi_key in KPI_LABELS:
+        json_data["kpi_metadata"][kpi_key] = {
+            "label": KPI_LABELS[kpi_key],
+            "unit": KPI_UNITS[kpi_key],
+            "thresholds": get_kpi_thresholds(kpi_key)
+        }
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime(EXPORT_TIMESTAMP_FORMAT)
+    filename = f"{EXPORT_FILENAME_PREFIX}_KPI_Data_{timestamp}.json"
+    
+    return json.dumps(json_data, indent=2), filename
+
 def export_kpi_status_to_json(kpi_data, day_idx=-1):
     """Export current KPI status to JSON format"""
     from constants import KPI_LABELS, KPI_UNITS
