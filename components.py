@@ -371,6 +371,11 @@ def build_garching_site_view():
         # Calculate mesh stats for debugging
         n_points = len(points) // 3
         n_faces = len([f for f in faces if isinstance(f, int) and f == 3]) if faces else 0
+        print(f"📦 Serializing mesh: {n_points} points, {n_faces} faces")
+        
+        # Force garbage collection after mesh processing
+        import gc
+        gc.collect()
         
         return html.Div([
             dash_vtk.View(

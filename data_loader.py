@@ -36,49 +36,74 @@ def load_festo_mesh():
 
 @lru_cache(maxsize=1)
 def load_garching_mesh():
-    """Load and cache Garching mesh data with memory optimization"""
-    mesh = pv.read(GARCHING_OBJ_PATH)
+    """Load and cache Garching mesh data with aggressive memory optimization"""
+    import gc
     
-    # Ensure triangulated
-    if mesh.faces.size > 0 and mesh.faces[0] not in (3, 4):
-        mesh = mesh.triangulate()
-    
-    # Count current faces - PyVista provides n_faces property
     try:
-        n_faces = mesh.n_faces
-    except AttributeError:
-        # Fallback: estimate from faces array size (format: [n, v0, v1, v2, ...])
-        n_faces = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
-    
-    # Apply decimation if mesh is too large or decimation factor is set
-    if MESH_DECIMATION_FACTOR > 0.0 and n_faces > 0:
-        target_faces = max(1, int(n_faces * (1.0 - MESH_DECIMATION_FACTOR)))
-        if target_faces < n_faces:
-            try:
-                # PyVista decimate takes reduction factor (0.0 to 1.0)
-                reduction = 1.0 - (target_faces / n_faces)
-                reduction = max(0.0, min(0.99, reduction))  # Clamp between 0 and 0.99
-                mesh = mesh.decimate(reduction)
-            except Exception as e:
-                print(f"Warning: Mesh decimation failed: {e}. Using original mesh.")
-    
-    # Apply maximum face limit if set
-    if MAX_MESH_FACES > 0:
-        # Recalculate faces after decimation
+        mesh = pv.read(GARCHING_OBJ_PATH)
+        
+        # Ensure triangulated
+        if mesh.faces.size > 0 and mesh.faces[0] not in (3, 4):
+            mesh = mesh.triangulate()
+        
+        # Count current faces - PyVista provides n_faces property
         try:
-            n_faces_after = mesh.n_faces
+            n_faces_original = mesh.n_faces
         except AttributeError:
-            n_faces_after = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
-            
-        if n_faces_after > MAX_MESH_FACES:
+            # Fallback: estimate from faces array size (format: [n, v0, v1, v2, ...])
+            n_faces_original = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
+        
+        print(f"📊 Original mesh: {n_faces_original} faces")
+        
+        # Apply decimation if mesh is too large or decimation factor is set
+        if MESH_DECIMATION_FACTOR > 0.0 and n_faces_original > 0:
+            target_faces = max(1, int(n_faces_original * (1.0 - MESH_DECIMATION_FACTOR)))
+            if target_faces < n_faces_original:
+                try:
+                    # PyVista decimate takes reduction factor (0.0 to 1.0)
+                    reduction = 1.0 - (target_faces / n_faces_original)
+                    reduction = max(0.0, min(0.99, reduction))  # Clamp between 0 and 0.99
+                    print(f"🔧 Applying decimation: {reduction:.2%} reduction (target: {target_faces} faces)")
+                    mesh = mesh.decimate(reduction)
+                    # Force garbage collection after decimation
+                    gc.collect()
+                except Exception as e:
+                    print(f"⚠️ Warning: Mesh decimation failed: {e}. Using original mesh.")
+        
+        # Apply maximum face limit if set
+        if MAX_MESH_FACES > 0:
+            # Recalculate faces after decimation
             try:
-                reduction = 1.0 - (MAX_MESH_FACES / n_faces_after)
-                reduction = max(0.0, min(0.99, reduction))
-                mesh = mesh.decimate(reduction)
-            except Exception as e:
-                print(f"Warning: Mesh face limit reduction failed: {e}. Using current mesh.")
-    
-    return mesh
+                n_faces_after = mesh.n_faces
+            except AttributeError:
+                n_faces_after = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
+            
+            if n_faces_after > MAX_MESH_FACES:
+                try:
+                    reduction = 1.0 - (MAX_MESH_FACES / n_faces_after)
+                    reduction = max(0.0, min(0.99, reduction))
+                    print(f"🔧 Applying face limit: reducing to {MAX_MESH_FACES} faces ({reduction:.2%} reduction)")
+                    mesh = mesh.decimate(reduction)
+                    gc.collect()
+                except Exception as e:
+                    print(f"⚠️ Warning: Mesh face limit reduction failed: {e}. Using current mesh.")
+        
+        # Final face count
+        try:
+            n_faces_final = mesh.n_faces
+        except AttributeError:
+            n_faces_final = mesh.faces.size // 4 if mesh.faces.size > 0 else 0
+        
+        reduction_pct = ((n_faces_original - n_faces_final) / n_faces_original * 100) if n_faces_original > 0 else 0
+        print(f"✅ Final mesh: {n_faces_final} faces ({reduction_pct:.1f}% reduction from original)")
+        
+        return mesh
+    except MemoryError:
+        print("❌ Memory error loading mesh. Try increasing MESH_DECIMATION_FACTOR or reducing MAX_MESH_FACES")
+        raise
+    except Exception as e:
+        print(f"❌ Error loading mesh: {e}")
+        raise
 
 def simulate_kpi(seed=0):
     """Generate simulated KPI data for a 600m² shopfloor"""
